@@ -1,36 +1,222 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Emergency Location Request</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+    <title>Emergency GPS Tracker</title>
+
+    <!-- Leaflet CSS -->
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+
+    <style>
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .container {
+            padding: 20px;
+            text-align: center;
+        }
+
+        h2 {
+            color: #d32f2f;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            background: #1976d2;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background: #125ea7;
+        }
+
+        #status {
+            margin-top: 15px;
+            font-size: 16px;
+            line-height: 1.7;
+        }
+
+        #map {
+            height: 500px;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+    </style>
 </head>
+
 <body>
-    <h2>Please tap Allow to share your location</h2>
 
-    <script>
+<div class="container">
+
+    <h2>Emergency GPS Location</h2>
+
+    <p>
+        Tap the button to fetch and visualize your GPS location.
+    </p>
+
+    <button onclick="getLocation()">
+        Share Live Location
+    </button>
+
+    <div id="status">
+        Waiting for location...
+    </div>
+
+    <div id="map"></div>
+
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+    // Default map location
+    const map = L.map('map').setView([20, 78], 4);
+
+    // OpenStreetMap tiles
+    L.tileLayer(
+        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        {
+            attribution:
+                '&copy; OpenStreetMap contributors'
+        }
+    ).addTo(map);
+
+    let marker;
+
+    function getLocation() {
+
+        const status =
+            document.getElementById("status");
+
+        if (!navigator.geolocation) {
+
+            status.innerHTML =
+                "Geolocation is not supported.";
+
+            return;
+        }
+
+        status.innerHTML =
+            "Fetching GPS coordinates...";
+
         navigator.geolocation.getCurrentPosition(
+
             function(position) {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
 
-                fetch("https://your-server.com/location", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        latitude: lat,
-                        longitude: lon
-                    })
-                });
+                const lat =
+                    position.coords.latitude;
 
-                document.body.innerHTML =
-                    "<h3>Location shared successfully.</h3>";
+                const lon =
+                    position.coords.longitude;
+
+                const accuracy =
+                    position.coords.accuracy;
+
+                const timestamp =
+                    new Date(
+                        position.timestamp
+                    ).toLocaleString();
+
+                // Update map view
+                map.setView([lat, lon], 16);
+
+                // Remove old marker
+                if (marker) {
+                    map.removeLayer(marker);
+                }
+
+                // Add marker
+                marker = L.marker([lat, lon])
+                    .addTo(map)
+                    .bindPopup(
+                        `
+                        <b>Live Location</b><br>
+                        Latitude: ${lat}<br>
+                        Longitude: ${lon}<br>
+                        Accuracy: ${accuracy.toFixed(2)} m
+                        `
+                    )
+                    .openPopup();
+
+                // Accuracy circle
+                L.circle([lat, lon], {
+                    radius: accuracy
+                }).addTo(map);
+
+                // Status text
+                status.innerHTML = `
+                    <b>Location Retrieved Successfully</b><br><br>
+
+                    Latitude: ${lat}<br>
+                    Longitude: ${lon}<br>
+                    Accuracy: ${accuracy.toFixed(2)} meters<br>
+                    Time: ${timestamp}
+                `;
+
+                console.log("Latitude:", lat);
+                console.log("Longitude:", lon);
+
             },
+
             function(error) {
-                document.body.innerHTML =
-                    "<h3>Location permission denied.</h3>";
+
+                let message = "";
+
+                switch(error.code) {
+
+                    case error.PERMISSION_DENIED:
+                        message =
+                            "Permission denied.";
+                        break;
+
+                    case error.POSITION_UNAVAILABLE:
+                        message =
+                            "Location unavailable.";
+                        break;
+
+                    case error.TIMEOUT:
+                        message =
+                            "Request timed out.";
+                        break;
+
+                    default:
+                        message =
+                            "Unknown error.";
+                }
+
+                status.innerHTML =
+                    `<span style="color:red;">
+                        ${message}
+                    </span>`;
+
+                console.error(error);
+            },
+
+            {
+                enableHighAccuracy: true,
+                timeout: 20000,
+                maximumAge: 0
             }
         );
-    </script>
+    }
+
+</script>
+
 </body>
 </html>
