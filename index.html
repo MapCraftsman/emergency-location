@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Emergency Location Request</title>
+</head>
+<body>
+    <h2>Please tap Allow to share your location</h2>
+
+    <script>
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+
+                fetch("https://your-server.com/location", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        latitude: lat,
+                        longitude: lon
+                    })
+                });
+
+                document.body.innerHTML =
+                    "<h3>Location shared successfully.</h3>";
+            },
+            function(error) {
+                document.body.innerHTML =
+                    "<h3>Location permission denied.</h3>";
+            }
+        );
+    </script>
+</body>
+</html>
